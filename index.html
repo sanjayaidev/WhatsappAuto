@@ -8,6 +8,37 @@
   <link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
   <style>
+        /* Custom Selected Date Highlight */
+    .fc-daygrid-day.custom-selected {
+      background-color: #e0e7ff !important; /* Light purple background */
+      border-radius: 6px;
+      transition: background-color 0.2s;
+    }
+    
+    .fc-daygrid-day.custom-selected .fc-daygrid-day-number {
+      color: #667eea !important;
+      font-weight: 800 !important;
+      background: white;
+      border-radius: 50%;
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 4px auto;
+      box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3);
+    }
+    
+    /* If today is also the selected date, make it stand out even more */
+    .fc-daygrid-day.fc-day-today.custom-selected {
+      background-color: #667eea !important;
+    }
+    
+    .fc-daygrid-day.fc-day-today.custom-selected .fc-daygrid-day-number {
+      color: white !important;
+      background: rgba(255, 255, 255, 0.25);
+      box-shadow: none;
+    }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }
     .container { max-width: 1300px; margin: 0 auto; background: white; border-radius: 24px; box-shadow: 0 20px 60px rgba(0,0,0,0.2); overflow: hidden; }
@@ -167,24 +198,61 @@
     return await response.json();
   }
   
-  function initCalendar() {
+    function initCalendar() {
     const calendarEl = document.getElementById('calendar');
+    
     calendar = new FullCalendar.Calendar(calendarEl, {
       initialView: 'dayGridMonth',
-      headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek' },
-      buttonText: { today: 'Today', month: 'Month', week: 'Week', day: 'Day' },
+      headerToolbar: { 
+        left: 'prev,next today', 
+        center: 'title', 
+        right: 'dayGridMonth,timeGridWeek' 
+      },
+      buttonText: { 
+        today: 'Today', 
+        month: 'Month', 
+        week: 'Week', 
+        day: 'Day' 
+      },
       weekends: true,
-      dateClick: function(info) { handleDateClick(info.dateStr); },
-      validRange: { start: new Date().toISOString().split('T')[0] },
+      dateClick: function(info) { 
+        handleDateClick(info.dateStr); 
+      },
+      // Re-apply highlight when user navigates between months
+      datesSet: function(info) {
+        if (selectedDate) {
+          const selectedDayEl = document.querySelector(`.fc-daygrid-day[data-date="${selectedDate}"]`);
+          if (selectedDayEl) {
+            selectedDayEl.classList.add('custom-selected');
+          }
+        }
+      },
+      validRange: { 
+        start: new Date().toISOString().split('T')[0] 
+      },
       height: 'auto',
       contentHeight: 450
     });
+    
     calendar.render();
   }
   
-  function handleDateClick(dateStr) {
+   function handleDateClick(dateStr) {
     selectedDate = dateStr;
     selectedTimeSlot = null;
+    
+    // 1. Remove highlight from ALL days in the calendar
+    document.querySelectorAll('.fc-daygrid-day').forEach(day => {
+      day.classList.remove('custom-selected');
+    });
+    
+    // 2. Add highlight to the specifically clicked day
+    const selectedDayEl = document.querySelector(`.fc-daygrid-day[data-date="${dateStr}"]`);
+    if (selectedDayEl) {
+      selectedDayEl.classList.add('custom-selected');
+    }
+    
+    // 3. Reset UI steps
     document.getElementById('stepTimeSlot').style.display = 'none';
     document.getElementById('stepDetails').style.display = 'none';
     document.getElementById('noSelection').style.display = 'none';
@@ -192,7 +260,14 @@
     document.querySelectorAll('.meeting-card').forEach(card => card.classList.remove('selected'));
     selectedMeetingType = null;
     
-    const formattedDate = new Date(dateStr).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    // 4. Format and display selected date
+    const formattedDate = new Date(dateStr).toLocaleDateString('en-US', { 
+      weekday: 'long', 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    });
+    
     document.getElementById('selectedDateDisplay').innerHTML = `<strong>📅 Selected:</strong> ${formattedDate}`;
   }
   
